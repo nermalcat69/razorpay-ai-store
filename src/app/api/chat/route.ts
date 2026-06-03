@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, Type, type Tool, type Content, type Part } from "@google/genai";
-import { createCashfreeOrder, getCashfreeOrderStatus } from "@/lib/cashfree";
+import { createRazorpayOrder, getRazorpayOrderStatus } from "@/lib/razorpay";
 import { buildSiteContext } from "@/lib/site-context";
 import { db } from "@/lib/db";
 
@@ -14,7 +14,7 @@ const TOOLS: Tool[] = [
       {
         name: "create_payment",
         description:
-          "Create a Cashfree UPI payment order for hostel booking. Returns a payment link the user can scan as a QR code to pay. Use this when the user wants to pay or book a hostel.",
+          "Create a Razorpay payment link for hostel booking. Returns a payment link the user can scan as a QR code to pay. Use this when the user wants to pay or book a hostel.",
         parameters: {
           type: Type.OBJECT,
           properties: {
@@ -29,11 +29,11 @@ const TOOLS: Tool[] = [
       },
       {
         name: "check_payment_status",
-        description: "Check the status of an existing Cashfree payment order.",
+        description: "Check the status of an existing Razorpay payment link.",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            order_id: { type: Type.STRING, description: "The Cashfree order ID to check" },
+            order_id: { type: Type.STRING, description: "The Razorpay payment link ID to check" },
           },
           required: ["order_id"],
         },
@@ -50,7 +50,7 @@ ${siteContext}
 
 When a user wants to book, look up the correct price from the catalog above — never ask the user for the price or amount. Only collect their name, phone number, and email, then call create_payment with the correct amount from the room type they choose.
 If they don't specify a room type, use the starting (cheapest) price for that property.
-Be friendly, concise, and helpful. All payments are processed via Cashfree (test mode).
+Be friendly, concise, and helpful. All payments are processed via Razorpay (test mode).
 
 PAYMENT STATUS: When a user says anything like "I've paid", "I paid", "I have paid", "did you receive the money", "check payment", "payment done", or similar — immediately call check_payment_status without asking for clarification.${activeOrderId ? ` The current active order ID is: ${activeOrderId}` : " Use the most recent order ID from the conversation history."}
 
@@ -75,7 +75,7 @@ async function handleToolCall(
 ): Promise<{ result: Record<string, unknown>; payment: PaymentResult | null }> {
   if (name === "create_payment") {
     const a = args as CreatePaymentArgs;
-    const order = await createCashfreeOrder({
+    const order = await createRazorpayOrder({
       amount: a.amount,
       customerName: a.customer_name,
       customerPhone: a.customer_phone,
@@ -110,7 +110,7 @@ async function handleToolCall(
 
   if (name === "check_payment_status") {
     const a = args as { order_id: string };
-    const status = await getCashfreeOrderStatus(a.order_id);
+    const status = await getRazorpayOrderStatus(a.order_id);
     return { result: status as unknown as Record<string, unknown>, payment: null };
   }
 

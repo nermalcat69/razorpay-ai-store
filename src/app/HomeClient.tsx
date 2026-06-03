@@ -112,7 +112,7 @@ export default function HomeClient({ hostels }: { hostels: Hostel[] }) {
                 (entered || ctaHovered) && "giti-shimmer-text",
               )}
             >
-              Cashfree Payments
+              Razorpay Payments
               <br />
               AI Store
             </motion.h1>

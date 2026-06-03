@@ -2,27 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 
-function verifySignature(rawBody: string, timestamp: string, signature: string): boolean {
-  const secret = process.env.CASHFREE_SECRET_KEY ?? "";
+function verifySignature(rawBody: string, signature: string): boolean {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
   const expected = crypto
     .createHmac("sha256", secret)
-    .update(timestamp + rawBody)
-    .digest("base64");
+    .update(rawBody)
+    .digest("hex");
   return expected === signature;
 }
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
-  const timestamp = req.headers.get("x-webhook-timestamp") ?? "";
-  const signature = req.headers.get("x-webhook-signature") ?? "";
+  const signature = req.headers.get("x-razorpay-signature") ?? "";
 
-  if (timestamp && signature && !verifySignature(rawBody, timestamp, signature)) {
+  if (signature && !verifySignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let event: {
-    type: string;
-    data?: { order?: { order_id?: string }; payment?: { payment_status?: string } };
+    event: string;
+    payload?: { payment_link?: { entity?: { id?: string } }; payment?: { entity?: { status?: string } } };
   };
 
   try {
@@ -32,11 +31,11 @@ export async function POST(req: NextRequest) {
   }
 
   const isPaid =
-    event.type === "PAYMENT_SUCCESS_WEBHOOK" ||
-    event.data?.payment?.payment_status === "SUCCESS";
+    event.event === "payment_link.paid" ||
+    event.payload?.payment?.entity?.status === "captured";
 
   if (isPaid) {
-    const orderId = event.data?.order?.order_id;
+    const orderId = event.payload?.payment_link?.entity?.id;
     if (orderId) {
       try {
         await db.execute({

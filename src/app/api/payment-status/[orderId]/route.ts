@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCashfreeOrderStatus } from "@/lib/cashfree";
+import { getRazorpayOrderStatus } from "@/lib/razorpay";
 import { db } from "@/lib/db";
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { orderId } = await params;
 
-  const status = await getCashfreeOrderStatus(orderId);
+  const status = await getRazorpayOrderStatus(orderId);
 
   if (status.status === "PAID") {
     try {
