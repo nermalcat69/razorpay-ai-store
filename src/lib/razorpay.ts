@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+
 const BASE_URL = "https://api.razorpay.com/v1";
 
 function rzpHeaders() {
@@ -49,28 +51,8 @@ export async function createRazorpayOrder(params: CreateOrderParams): Promise<Or
 
   const data = await res.json();
   const shortUrl: string = data.short_url;
-  const amountPaise = Math.round(params.amount * 100);
 
-  // Create a fixed-amount UPI QR code for the same booking
-  const closeBy = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24 h
-  const qrRes = await fetch(`${BASE_URL}/payments/qr_codes`, {
-    method: "POST",
-    headers: rzpHeaders(),
-    body: JSON.stringify({
-      type: "upi_qr",
-      usage: "single_use",
-      fixed_amount: true,
-      payment_amount: amountPaise,
-      description: params.note ?? "Jeevan PG Hostel Booking",
-      close_by: closeBy,
-    }),
-  });
-
-  let qrCode = shortUrl; // fallback to payment link URL if QR creation fails
-  if (qrRes.ok) {
-    const qrData = await qrRes.json();
-    if (qrData.image_url) qrCode = qrData.image_url;
-  }
+  const qrCode = await QRCode.toDataURL(shortUrl, { width: 300, margin: 2 });
 
   return {
     orderId: data.id,
