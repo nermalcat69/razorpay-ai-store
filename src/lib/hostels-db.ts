@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import { db } from "./db";
 import type { Hostel } from "./hostels";
 
@@ -45,25 +44,16 @@ function rowToHostel(row: RawRow): Hostel {
   };
 }
 
-const _getHostels = unstable_cache(
-  async (): Promise<Hostel[]> => {
-    const result = await db.execute("SELECT * FROM hostels ORDER BY id ASC");
-    return result.rows.map((row) => rowToHostel(row as unknown as RawRow));
-  },
-  ["hostels"]
-);
+export async function getHostels(): Promise<Hostel[]> {
+  const result = await db.execute("SELECT * FROM hostels ORDER BY id ASC");
+  return result.rows.map((row) => rowToHostel(row as unknown as RawRow));
+}
 
-const _getHostelBySlug = unstable_cache(
-  async (slug: string): Promise<Hostel | null> => {
-    const result = await db.execute({
-      sql: "SELECT * FROM hostels WHERE slug = ?",
-      args: [slug],
-    });
-    if (result.rows.length === 0) return null;
-    return rowToHostel(result.rows[0] as unknown as RawRow);
-  },
-  ["hostel-by-slug"]
-);
-
-export const getHostels = () => _getHostels();
-export const getHostelBySlug = (slug: string) => _getHostelBySlug(slug);
+export async function getHostelBySlug(slug: string): Promise<Hostel | null> {
+  const result = await db.execute({
+    sql: "SELECT * FROM hostels WHERE slug = ?",
+    args: [slug],
+  });
+  if (result.rows.length === 0) return null;
+  return rowToHostel(result.rows[0] as unknown as RawRow);
+}
